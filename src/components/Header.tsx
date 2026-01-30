@@ -18,7 +18,7 @@ export function Header() {
     avatar: '👨‍💻',
   });
 
-  const user = session?.user;
+  const user = session?.user as any;
 
   useEffect(() => {
     if (user) {
@@ -30,7 +30,6 @@ export function Header() {
     }
   }, [user]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -74,7 +73,6 @@ export function Header() {
   return (
     <header className="h-16 flex items-center justify-end px-6 border-b border-d2i-teal/20">
       <div className="relative" ref={dropdownRef}>
-        {/* Profile Button */}
         <button
           onClick={() => {
             setShowDropdown(!showDropdown);
@@ -91,7 +89,6 @@ export function Header() {
           </div>
         </button>
 
-        {/* Dropdown Menu */}
         {showDropdown && !showProfileEdit && (
           <div className="absolute right-0 top-14 w-56 rounded-xl border border-d2i-teal/30 bg-d2i-navy-dark shadow-xl animate-fade-in z-50">
             <div className="p-3 border-b border-d2i-teal/20">
@@ -117,7 +114,6 @@ export function Header() {
           </div>
         )}
 
-        {/* Profile Edit Panel */}
         {showDropdown && showProfileEdit && (
           <div className="absolute right-0 top-14 w-72 rounded-xl border border-d2i-teal/30 bg-d2i-navy-dark shadow-xl animate-fade-in z-50">
             <div className="p-4 border-b border-d2i-teal/20 flex items-center justify-between">
