@@ -23,14 +23,12 @@ export default function ChatPage() {
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch messages on load and poll for new ones
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 5000); // Poll every 5 seconds
+    const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -64,12 +62,11 @@ export default function ChatPage() {
       });
 
       if (res.ok) {
-        // Fetch latest messages to get the new one with proper data
         await fetchMessages();
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-      setMessage(tempMessage); // Restore message if failed
+      setMessage(tempMessage);
     } finally {
       setIsSending(false);
     }
@@ -79,6 +76,8 @@ export default function ChatPage() {
     const date = new Date(dateString);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+
+  const currentUserId = (session?.user as any)?.id;
 
   if (isLoading) {
     return (
@@ -99,7 +98,6 @@ export default function ChatPage() {
         className="flex flex-col rounded-2xl overflow-hidden bg-gradient-to-br from-d2i-navy/90 to-d2i-navy-dark/90 border border-d2i-teal/20"
         style={{ height: '500px' }}
       >
-        {/* Messages */}
         <div className="flex-1 p-6 overflow-auto space-y-4">
           {messages.length === 0 && (
             <div className="text-center text-white/50 py-8">
@@ -107,7 +105,7 @@ export default function ChatPage() {
             </div>
           )}
           {messages.map((msg) => {
-            const isMe = msg.user.id === session?.user?.id;
+            const isMe = msg.user.id === currentUserId;
             return (
               <div key={msg.id} className={`flex items-start gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
                 <div
@@ -140,7 +138,6 @@ export default function ChatPage() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
         <div className="p-4 border-t border-d2i-teal/20">
           <div className="flex items-center gap-3">
             <input
