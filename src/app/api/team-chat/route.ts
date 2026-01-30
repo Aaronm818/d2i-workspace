@@ -27,7 +27,7 @@ export async function GET(request: Request) {
         },
       },
       orderBy: { createdAt: 'asc' },
-      take: 100, // Limit to last 100 messages
+      take: 100,
     });
 
     return NextResponse.json({ messages });
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     const chatMessage = await prisma.chatMessage.create({
       data: {
         message: message.trim(),
-        userId: session.user.id,
+        userId: (session.user as any).id,
         projectId,
       },
       include: {
