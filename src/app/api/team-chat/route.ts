@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-// Get chat messages for a project
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -37,7 +36,6 @@ export async function GET(request: Request) {
   }
 }
 
-// Send a new chat message
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);

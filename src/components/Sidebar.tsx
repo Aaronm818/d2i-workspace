@@ -18,7 +18,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-80 p-6 flex flex-col bg-d2i-navy-dark/80 border-r border-d2i-teal/20">
+    <aside className="w-64 p-6 flex flex-col bg-d2i-navy-dark/80 border-r border-d2i-teal/20">
       <div className="mb-8">
         <D2ILogo />
       </div>

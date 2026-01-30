@@ -8,98 +8,60 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  password      String
-  role          String    @default("Developer")
-  avatar        String    @default("👨‍💻")
-  online        Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("Developer")
+  avatar    String   @default("👨‍💻")
+  online    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Relations
-  assignedModules Module[]        @relation("AssignedModules")
-  verifiedTasks   Task[]          @relation("VerifiedTasks")
-  chatMessages    ChatMessage[]
-  notes           Note[]
-  workspaceChats  WorkspaceChat[]
-  projects        ProjectMember[]
-  uploads         Upload[]
+  modules      Module[]
+  notes        Note[]
+  chatMessages ChatMessage[]
+  uploads      Upload[]
 }
 
 model Project {
   id          String   @id @default(cuid())
   name        String
   description String?
-  phase       String   @default("discovery")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relations
-  modules Module[]
-  members ProjectMember[]
-  chats   ChatMessage[]
-  uploads Upload[]
-}
-
-model ProjectMember {
-  id        String   @id @default(cuid())
-  userId    String
-  projectId String
-  role      String   @default("member") // owner, lead, member
-  joinedAt  DateTime @default(now())
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, projectId])
+  modules      Module[]
+  chatMessages ChatMessage[]
+  uploads      Upload[]
 }
 
 model Module {
   id          String   @id @default(cuid())
   name        String
   description String?
-  status      String   @default("pending") // pending, in-progress, review, complete
+  status      String   @default("not_started")
   progress    Int      @default(0)
   projectId   String
   assigneeId  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relations
-  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignee User?   @relation("AssignedModules", fields: [assigneeId], references: [id])
+  project  Project @relation(fields: [projectId], references: [id])
+  assignee User?   @relation(fields: [assigneeId], references: [id])
   tasks    Task[]
-  workspaceChats WorkspaceChat[]
 }
 
 model Task {
   id          String   @id @default(cuid())
-  task        String
-  category    String   @default("General") // UI, Backend, Integration, Testing, Docs
+  title       String
+  description String?
   completed   Boolean  @default(false)
   moduleId    String
-  verifiedById String?
-  completedAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relations
-  module     Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  verifiedBy User?  @relation("VerifiedTasks", fields: [verifiedById], references: [id])
-}
-
-model ChatMessage {
-  id        String   @id @default(cuid())
-  message   String
-  userId    String
-  projectId String
-  createdAt DateTime @default(now())
-
-  // Relations
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 }
 
 model Note {
@@ -109,21 +71,18 @@ model Note {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
 }
 
-model WorkspaceChat {
+model ChatMessage {
   id        String   @id @default(cuid())
-  role      String   // user, assistant
   message   String
-  moduleId  String
   userId    String
+  projectId String
   createdAt DateTime @default(now())
 
-  // Relations
-  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+  project Project @relation(fields: [projectId], references: [id])
 }
 
 model Upload {
@@ -131,12 +90,11 @@ model Upload {
   filename     String
   fileType     String
   fileSize     Int
-  content      String   // Base64 encoded content
+  content      String
   projectId    String
   uploadedById String
   createdAt    DateTime @default(now())
 
-  // Relations
-  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  uploadedBy User    @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  project    Project @relation(fields: [projectId], references: [id])
+  uploadedBy User    @relation(fields: [uploadedById], references: [id])
 }
