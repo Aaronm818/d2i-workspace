@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icons, D2ILogo } from './ui/Icons';
 
 const navItems = [
@@ -22,15 +22,15 @@ export function Sidebar() {
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: session?.user?.name || '',
-    role: session?.user?.role || '',
-    avatar: session?.user?.avatar || '👨‍💻',
+    name: '',
+    role: '',
+    avatar: '👨‍💻',
   });
 
   const user = session?.user;
 
   // Update local state when session changes
-  useState(() => {
+  useEffect(() => {
     if (session?.user) {
       setProfileData({
         name: session.user.name || '',
@@ -38,7 +38,7 @@ export function Sidebar() {
         avatar: session.user.avatar || '👨‍💻',
       });
     }
-  });
+  }, [session?.user]);
 
   const saveProfile = async () => {
     setIsSaving(true);
