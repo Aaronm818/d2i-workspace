@@ -53,20 +53,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Check file size (limit to 5MB)
     if (file.size > 5 * 1024 * 1024) {
       return NextResponse.json({ error: 'File too large. Maximum size is 5MB' }, { status: 400 });
     }
 
-    // Read file as base64
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const base64Content = buffer.toString('base64');
 
-    // Determine file type
     const fileType = file.type || 'application/octet-stream';
     
-    // Create upload record
     const upload = await prisma.upload.create({
       data: {
         filename: file.name,
@@ -74,7 +70,7 @@ export async function POST(request: Request) {
         fileSize: file.size,
         content: base64Content,
         projectId,
-        uploadedById: session.user.id,
+        uploadedById: (session.user as any).id,
       },
       include: {
         uploadedBy: {
