@@ -8,7 +8,7 @@ interface Upload {
   filename: string;
   fileType: string;
   fileSize: number;
-  createdAt: string;
+  createdAt: Date | string;
   uploadedBy: {
     name: string;
     avatar: string;
@@ -33,7 +33,6 @@ export function FileUploadSection({ initialUploads }: FileUploadSectionProps) {
     setIsUploading(true);
 
     for (const file of Array.from(files)) {
-      // Check file size (5MB limit)
       if (file.size > 5 * 1024 * 1024) {
         setError(`${file.name} is too large. Maximum size is 5MB.`);
         continue;
@@ -120,14 +119,12 @@ export function FileUploadSection({ initialUploads }: FileUploadSectionProps) {
         </div>
       </div>
 
-      {/* Error message */}
       {error && (
         <div className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500/50 text-red-200 text-sm">
           {error}
         </div>
       )}
 
-      {/* Drop zone */}
       <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -169,7 +166,6 @@ export function FileUploadSection({ initialUploads }: FileUploadSectionProps) {
         </div>
       </div>
 
-      {/* Uploaded files list */}
       {uploads.length > 0 && (
         <div className="mt-4 space-y-2">
           <h3 className="text-sm font-medium text-white/70">Recent Uploads</h3>
