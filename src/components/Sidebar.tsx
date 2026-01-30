@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { signOut } from 'next-auth/react';
 import { Icons, D2ILogo } from './ui/Icons';
 
 const navItems = [
@@ -16,8 +16,6 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const user = session?.user;
 
   return (
     <aside className="w-64 p-6 flex flex-col bg-d2i-navy-dark/80 border-r border-d2i-teal/20">
@@ -25,7 +23,6 @@ export function Sidebar() {
         <D2ILogo />
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 space-y-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href || 
@@ -48,6 +45,14 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      <button
+        onClick={() => signOut({ callbackUrl: '/login' })}
+        className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all mt-4 text-white/50 hover:text-white/80 hover:bg-d2i-navy/50"
+      >
+        <Icons.Logout />
+        <span>Logout</span>
+      </button>
     </aside>
   );
 }
