@@ -1,39 +1,98 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Icons } from '@/components/ui/Icons';
 
-// For MVP, this is a UI mockup - real-time chat would require WebSockets/Pusher
+interface ChatMessage {
+  id: string;
+  message: string;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    avatar: string;
+  };
+}
+
 export default function ChatPage() {
   const { data: session } = useSession();
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([
-    { user: 'Mark H.', message: 'The data profiling needs human review before AI corrections', time: '10:30 AM', avatar: '🧠' },
-    { user: 'Michael', message: 'Agreed. I think we should have response plans as documents', time: '10:32 AM', avatar: '⚡' },
-    { user: 'Aaron', message: 'I can refine the checkbox interface from yesterday for that', time: '10:35 AM', avatar: '👨‍💻' },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const sendMessage = () => {
-    if (!message.trim()) return;
-    
-    setMessages([
-      ...messages,
-      {
-        user: session?.user?.name?.split(' ')[0] || 'You',
-        message: message,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        avatar: session?.user?.avatar || '👤',
-      },
-    ]);
-    setMessage('');
+  // Fetch messages on load and poll for new ones
+  useEffect(() => {
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 5000); // Poll every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const fetchMessages = async () => {
+    try {
+      const res = await fetch('/api/team-chat?projectId=default');
+      const data = await res.json();
+      if (data.messages) {
+        setMessages(data.messages);
+      }
+    } catch (error) {
+      console.error('Failed to fetch messages:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const sendMessage = async () => {
+    if (!message.trim() || isSending) return;
+
+    setIsSending(true);
+    const tempMessage = message;
+    setMessage('');
+
+    try {
+      const res = await fetch('/api/team-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: tempMessage, projectId: 'default' }),
+      });
+
+      if (res.ok) {
+        // Fetch latest messages to get the new one with proper data
+        await fetchMessages();
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      setMessage(tempMessage); // Restore message if failed
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-d2i-cyan animate-pulse">Loading chat...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold text-white">Team Chat</h1>
-        <p className="text-d2i-cyan/80">Communicate with your team</p>
+        <p className="text-d2i-cyan/80">Communicate with your team in real-time</p>
       </div>
 
       <div
@@ -42,22 +101,27 @@ export default function ChatPage() {
       >
         {/* Messages */}
         <div className="flex-1 p-6 overflow-auto space-y-4">
-          {messages.map((msg, i) => {
-            const isMe = msg.user === session?.user?.name?.split(' ')[0] || msg.user === 'You';
+          {messages.length === 0 && (
+            <div className="text-center text-white/50 py-8">
+              <p>No messages yet. Start the conversation!</p>
+            </div>
+          )}
+          {messages.map((msg) => {
+            const isMe = msg.user.id === session?.user?.id;
             return (
-              <div key={i} className={`flex items-start gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
+              <div key={msg.id} className={`flex items-start gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
                   style={{
                     background: 'linear-gradient(135deg, rgba(0,115,127,0.5) 0%, #003D5A 100%)',
                   }}
                 >
-                  {msg.avatar}
+                  {msg.user.avatar || '👤'}
                 </div>
                 <div className={`max-w-md ${isMe ? 'text-right' : ''}`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-white">{msg.user}</span>
-                    <span className="text-xs text-d2i-cyan/60">{msg.time}</span>
+                  <div className={`flex items-center gap-2 mb-1 ${isMe ? 'flex-row-reverse' : ''}`}>
+                    <span className="text-sm font-medium text-white">{msg.user.name}</span>
+                    <span className="text-xs text-d2i-cyan/60">{formatTime(msg.createdAt)}</span>
                   </div>
                   <div
                     className="p-4 rounded-2xl"
@@ -73,6 +137,7 @@ export default function ChatPage() {
               </div>
             );
           })}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input */}
@@ -84,11 +149,12 @@ export default function ChatPage() {
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
               placeholder="Type a message..."
-              className="flex-1 px-4 py-3 rounded-xl bg-d2i-navy-dark border border-d2i-teal/40 text-white placeholder-white/40 focus:border-d2i-cyan focus:outline-none"
+              disabled={isSending}
+              className="flex-1 px-4 py-3 rounded-xl bg-d2i-navy-dark border border-d2i-teal/40 text-white placeholder-white/40 focus:border-d2i-cyan focus:outline-none disabled:opacity-50"
             />
             <button
               onClick={sendMessage}
-              disabled={!message.trim()}
+              disabled={!message.trim() || isSending}
               className="p-3 text-white rounded-xl bg-gradient-to-r from-d2i-teal to-d2i-cyan hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               <Icons.Send />
@@ -96,10 +162,6 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
-
-      <p className="text-center text-white/40 text-sm">
-        💡 For real-time chat, integrate with Pusher or Railway's built-in WebSocket support
-      </p>
     </div>
   );
 }

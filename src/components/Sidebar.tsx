@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { useState } from 'react';
 import { Icons, D2ILogo } from './ui/Icons';
@@ -17,10 +17,59 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const router = useRouter();
+  const { data: session, update } = useSession();
   const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [profileData, setProfileData] = useState({
+    name: session?.user?.name || '',
+    role: session?.user?.role || '',
+    avatar: session?.user?.avatar || '👨‍💻',
+  });
 
   const user = session?.user;
+
+  // Update local state when session changes
+  useState(() => {
+    if (session?.user) {
+      setProfileData({
+        name: session.user.name || '',
+        role: session.user.role || '',
+        avatar: session.user.avatar || '👨‍💻',
+      });
+    }
+  });
+
+  const saveProfile = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/team', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profileData),
+      });
+
+      if (res.ok) {
+        // Update the session with new data
+        await update({
+          ...session,
+          user: {
+            ...session?.user,
+            ...profileData,
+          },
+        });
+        setShowProfileEdit(false);
+        // Refresh the page to show updated data
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const avatarOptions = ['👨‍💻', '👩‍💻', '🧠', '⚡', '🎨', '📊', '🚀', '💼', '🔧', '🎯'];
 
   return (
     <aside className="w-72 p-6 flex flex-col bg-d2i-navy-dark/80 border-r border-d2i-teal/20">
@@ -32,7 +81,14 @@ export function Sidebar() {
       {user && (
         <div className="relative mb-6 p-4 rounded-2xl bg-gradient-to-br from-d2i-navy/80 to-d2i-navy-dark/80 border border-d2i-teal/20">
           <button
-            onClick={() => setShowProfileEdit(!showProfileEdit)}
+            onClick={() => {
+              setProfileData({
+                name: user.name || '',
+                role: user.role || '',
+                avatar: user.avatar || '👨‍💻',
+              });
+              setShowProfileEdit(!showProfileEdit);
+            }}
             className="absolute top-3 right-3 p-1.5 rounded-lg bg-d2i-teal/20 text-d2i-cyan hover:bg-d2i-teal/30 transition-colors"
           >
             <Icons.Settings />
@@ -49,6 +105,57 @@ export function Sidebar() {
               <p className="text-sm truncate text-d2i-cyan">{user.role}</p>
             </div>
           </div>
+
+          {/* Profile Edit Form */}
+          {showProfileEdit && (
+            <div className="mt-4 pt-4 space-y-3 border-t border-d2i-teal/30">
+              <div>
+                <label className="text-xs text-white/50 mb-1 block">Name</label>
+                <input
+                  type="text"
+                  value={profileData.name}
+                  onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg text-sm text-white bg-d2i-navy-dark border border-d2i-teal/40 focus:border-d2i-cyan focus:outline-none"
+                  placeholder="Your name"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/50 mb-1 block">Role</label>
+                <input
+                  type="text"
+                  value={profileData.role}
+                  onChange={(e) => setProfileData({ ...profileData, role: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg text-sm text-white bg-d2i-navy-dark border border-d2i-teal/40 focus:border-d2i-cyan focus:outline-none"
+                  placeholder="Your role"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/50 mb-1 block">Avatar</label>
+                <div className="flex flex-wrap gap-2">
+                  {avatarOptions.map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => setProfileData({ ...profileData, avatar: emoji })}
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-all"
+                      style={{
+                        backgroundColor: profileData.avatar === emoji ? 'rgba(37,226,204,0.3)' : '#002d44',
+                        border: profileData.avatar === emoji ? '2px solid #25E2CC' : '1px solid rgba(0,115,127,0.3)',
+                      }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={saveProfile}
+                disabled={isSaving}
+                className="w-full py-2 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-d2i-teal to-d2i-cyan hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

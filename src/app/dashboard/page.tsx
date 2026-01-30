@@ -3,16 +3,23 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Icons } from '@/components/ui/Icons';
 import Link from 'next/link';
+import { FileUploadSection } from '@/components/dashboard/FileUploadSection';
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   
   // Get stats
-  const [modules, users] = await Promise.all([
+  const [modules, users, uploads] = await Promise.all([
     prisma.module.findMany({
       include: { tasks: true, assignee: true },
     }),
     prisma.user.findMany(),
+    prisma.upload.findMany({
+      where: { projectId: 'default' },
+      include: { uploadedBy: { select: { name: true, avatar: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
   ]);
 
   const stats = [
@@ -105,6 +112,9 @@ export default async function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* File Upload Section */}
+      <FileUploadSection initialUploads={uploads} />
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-4">
